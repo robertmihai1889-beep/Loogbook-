@@ -1,1 +1,88 @@
-<!DOCTYPE html><html><body style="background:#000;color:#fff"><h1>TEST CALENDAR</h1><div id="cal"></div><script>var d=new Date();document.getElementById('cal').innerHTML='<p>Luna: '+d.getMonth()+'</p><p>An: '+d.getFullYear()+'</p>';</script></body></html>
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogBook Soferi</title>
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="LogBook">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; background: #0f1117; color: #e8eaf0; min-height: 100vh; }
+header { background: #181c27; border-bottom: 1px solid #2a3050; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 16px; font-weight: 700; color: #f5a623; letter-spacing: 1px; }
+.logo span { color: #8892a4; font-weight: 400; }
+select { background: #1e2336; border: 1px solid #2a3050; color: #e8eaf0; padding: 6px 10px; border-radius: 6px; font-size: 13px; }
+.cal-panel { background: #181c27; border-bottom: 1px solid #2a3050; padding: 16px; }
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.cal-nav button { background: #1e2336; border: 1px solid #2a3050; color: #e8eaf0; width: 36px; height: 36px; border-radius: 6px; font-size: 18px; cursor: pointer; }
+.cal-month { font-size: 16px; font-weight: 700; color: #e8eaf0; }
+.cal-table { width: 100%; border-collapse: separate; border-spacing: 3px; }
+.cal-table th { text-align: center; font-size: 10px; color: #555f72; padding: 4px 0; font-weight: 700; text-transform: uppercase; }
+.cal-table td { text-align: center; background: #1e2336; border: 1px solid #2a3050; border-radius: 6px; padding: 6px 2px; cursor: pointer; height: 42px; vertical-align: middle; }
+.cal-table td:hover { border-color: #f5a623; }
+.cal-table td.other { opacity: 0.3; cursor: default; }
+.cal-table td.worked { background: rgba(34,197,94,0.15); border-color: rgba(34,197,94,0.4); }
+.cal-table td.selected { background: rgba(245,166,35,0.2) !important; border-color: #f5a623 !important; }
+.cal-table td.worked .dn { color: #22c55e; }
+.cal-table td.selected .dn { color: #f5a623 !important; }
+.cal-table td.weekend .dn { color: #8892a4; }
+.dn { font-size: 13px; font-weight: 700; color: #e8eaf0; display: block; }
+.dc { font-size: 9px; color: rgba(34,197,94,0.8); display: block; }
+.today-num { background: #f5a623; color: #000; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
+.cal-legend { margin-top: 12px; display: flex; gap: 14px; flex-wrap: wrap; }
+.leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #8892a4; }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; }
+.cal-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.stat { background: #1e2336; border: 1px solid #2a3050; border-radius: 8px; padding: 10px 12px; }
+.stat .sl { font-size: 10px; color: #555f72; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.stat .sv { font-size: 20px; font-weight: 700; color: #f5a623; font-family: monospace; }
+.stat .ss { font-size: 10px; color: #555f72; }
+.form-panel { padding: 16px; }
+.form-date { font-size: 18px; font-weight: 700; color: #e8eaf0; }
+.form-day { font-size: 12px; color: #8892a4; margin-top: 2px; margin-bottom: 14px; }
+.worked-toggle { display: flex; gap: 8px; margin-bottom: 16px; }
+.tbtn { flex: 1; padding: 12px; border-radius: 8px; border: 2px solid #2a3050; background: #1e2336; color: #8892a4; font-size: 14px; font-weight: 700; cursor: pointer; }
+.tbtn.yes { background: rgba(34,197,94,0.12); border-color: #22c55e; color: #22c55e; }
+.tbtn.no { background: rgba(239,68,68,0.08); border-color: #ef4444; color: #ef4444; }
+.section { background: #181c27; border: 1px solid #2a3050; border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+.sec-head { background: #1e2336; padding: 12px 14px; border-bottom: 1px solid #2a3050; font-size: 13px; font-weight: 700; color: #e8eaf0; }
+.sec-body { padding: 14px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+.field label { display: block; font-size: 10px; font-weight: 700; color: #555f72; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
+.field input, .field textarea, .field select { width: 100%; background: #1e2336; border: 1px solid #2a3050; color: #e8eaf0; padding: 9px 10px; border-radius: 6px; font-size: 13px; font-family: Arial, sans-serif; outline: none; }
+.field input:focus, .field textarea:focus { border-color: #f5a623; }
+.field textarea { resize: vertical; min-height: 65px; }
+.colete-wrap { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #2a3050; border-radius: 8px; overflow: hidden; }
+.col-half { padding: 12px; }
+.col-half:first-child { border-right: 1px solid #2a3050; background: rgba(239,68,68,0.04); }
+.col-half:last-child { background: rgba(34,197,94,0.04); }
+.col-half label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+.col-half:first-child label { color: #f87171; }
+.col-half:last-child label { color: #22c55e; }
+.col-half input { width: 100%; background: transparent; border: 1px solid #2a3050; color: #e8eaf0; padding: 6px; border-radius: 6px; font-size: 22px; font-weight: 700; text-align: center; font-family: monospace; outline: none; }
+.col-ratio { font-size: 10px; color: #555f72; text-align: center; margin-top: 5px; font-family: monospace; }
+.loc-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+.loc-item { display: flex; align-items: center; gap: 6px; background: #1e2336; border: 1px solid #2a3050; border-radius: 6px; padding: 6px 8px; }
+.loc-item .ln { font-size: 11px; color: #555f72; width: 16px; text-align: center; flex-shrink: 0; }
+.loc-item input { flex: 1; background: transparent; border: none; color: #e8eaf0; font-size: 13px; outline: none; }
+.loc-item .ldel { background: none; border: none; color: #555f72; font-size: 18px; cursor: pointer; padding: 0 2px; }
+.add-loc { width: 100%; padding: 8px; background: #1e2336; border: 1px dashed #2a3050; border-radius: 6px; color: #555f72; font-size: 12px; cursor: pointer; text-align: center; }
+.stops-wrap { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.stop-chip { display: inline-flex; align-items: center; gap: 5px; background: #1e2336; border: 1px solid #2a3050; border-radius: 20px; padding: 4px 10px 4px 12px; font-size: 12px; font-family: monospace; }
+.stop-chip button { background: none; border: none; color: #555f72; cursor: pointer; font-size: 15px; }
+.stop-row { display: flex; gap: 8px; }
+.stop-row input { flex: 1; background: #1e2336; border: 1px solid #2a3050; color: #e8eaf0; padding: 8px 10px; border-radius: 6px; font-size: 13px; outline: none; }
+.stop-row button { background: #f5a623; border: none; color: #000; padding: 8px 14px; border-radius: 6px; font-weight: 700; font-size: 13px; cursor: pointer; }
+.save-bar { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; padding-top: 16px; border-top: 1px solid #2a3050; }
+.btn-save { background: #f5a623; border: none; color: #000; padding: 13px; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; width: 100%; }
+.btn-clear { background: transparent; border: 1px solid #2a3050; color: #8892a4; padding: 11px; border-radius: 8px; font-size: 14px; cursor: pointer; width: 100%; }
+.empty { text-align: center; padding: 60px 20px; color: #555f72; }
+.empty .ei { font-size: 48px; margin-bottom: 12px; }
+.empty p { font-size: 14px; line-height: 1.6; }
+.toast { position: fixed; bottom: 20px; right: 16px; left: 16px; background: #22c55e; color: #000; padding: 12px 18px; border-radius: 8px; font-weight: 700; font-size: 14px; text-align: center; transform: translateY(100px); opacity: 0; transition: all 0.3s; z-index: 200; }
+.toast.show { transform: translateY(0); opacity: 1; }
+</style>
+</head>
