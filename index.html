@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LogBook Șoferi</title>
+<meta name="theme-color" content="#0f1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LogBook">
+<link rel="manifest" href="data:application/json,{
+  %22name%22:%22LogBook%20Soferi%22,
+  %22short_name%22:%22LogBook%22,
+  %22start_url%22:%22.%22,
+  %22display%22:%22standalone%22,
+  %22background_color%22:%22%230f1117%22,
+  %22theme_color%22:%22%23f5a623%22,
+  %22icons%22:[{%22src%22:%22data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230f1117'/%3E%3Crect x='10' y='10' width='80' height='80' rx='14' fill='%231e2336'/%3E%3Ctext x='50' y='62' font-size='48' text-anchor='middle' fill='%23f5a623'%3E📋%3C/text%3E%3C/svg%3E%22,%22sizes%22:%22192x192%22,%22type%22:%22image/svg+xml%22}]
+}">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1e2336;
+    --border: #2a3050;
+    --accent: #f5a623;
+    --accent2: #e8821a;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --text: #e8eaf0;
+    --text2: #8892a4;
+    --text3: #555f72;
+    --radius: 10px;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 1px;
+  }
+  .logo span { color: var(--text2); font-weight: 400; }
+  .driver-select {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .driver-select label { font-size: 12px; color: var(--text2); }
+  .driver-select select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* ── LAYOUT ── */
+  .app {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 56px);
+  }
+
+  /* ── CALENDAR PANEL ── */
+  .cal-panel {
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    position: sticky;
+    top: 56px;
+    height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+
+  .cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .cal-nav button {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+  }
+  .cal-nav button:hover { background: var(--border); }
+  .cal-month {
+    font-size: 16px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 4px;
+    width: 100%;
+  }
+  .cal-dow {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 1px;
+    padding: 4px 0;
+    text-transform: uppercase;
+  }
+  .cal-day {
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.15s;
+    position: relative;
+    padding: 2px;
+    min-width: 0;
+  }
+  .cal-day:hover { border-color: var(--accent); }
+  .cal-day.empty { cursor: default; }
+  .cal-day.empty:hover { border-color: transparent; }
+  .cal-day.other-month .day-num { color: var(--text3); }
+  .cal-day .day-num {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+  }
+  .cal-day .day-colete {
+    font-size: 9px;
+    font-family: var(--mono);
+    color: var(--text3);
+    margin-top: 2px;
+  }
+  .cal-day.worked {
+    background: rgba(34, 197, 94, 0.12);
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+  .cal-day.worked .day-num { color: var(--green); }
+  .cal-day.worked .day-colete { color: rgba(34,197,94,0.7); }
+  .cal-day.selected {
+    background: rgba(245, 166, 35, 0.15);
+    border-color: var(--accent) !important;
+  }
+  .cal-day.selected .day-num { color: var(--accent); font-weight: 700; }
+  .cal-day.today .day-num {
+    background: var(--accent);
+    color: #000;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+  }
+  .cal-day.weekend .day-num { color: var(--text2); }
+
+  /* Legend */
+  .cal-legend {
+    margin-top: 20px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text2);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 3px;
+  }
+
+  /* Stats summary */
+  .cal-stats {
+    margin-top: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .stat-card .s-label {
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .stat-card .s-val {
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .stat-card .s-sub {
+    font-size: 10px;
+    color: var(--text3);
+    margin-top: 2px;
+  }
+
+  /* ── FORM PANEL ── */
+  .form-panel {
+    padding: 28px 32px;
+    overflow-y: auto;
+  }
+
+  .form-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  .form-date {
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .form-date span {
+    font-size: 14px;
+    color: var(--text2);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+  .badge-worked {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: 0.5px;
+  }
+  .badge-worked.yes { background: rgba(34,197,94,0.15); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+  .badge-worked.no  { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+  .worked-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    background: var(--surface2);
+    color: var(--text2);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s;
+    letter-spacing: 0.3px;
+  }
+  .toggle-btn.active-yes {
+    background: rgba(34,197,94,0.12);
+    border-color: var(--green);
+    color: var(--green);
+  }
+  .toggle-btn.active-no {
+    background: rgba(239,68,68,0.08);
+    border-color: var(--red);
+    color: var(--red);
+  }
+
+  /* Sections */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .section-header {
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .section-icon {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+  .section-body {
+    padding: 18px;
+  }
+
+  /* Form grid */
+  .form-row {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-row.cols-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .form-row:last-child { margin-bottom: 0; }
+
+  .field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 7px;
+  }
+  .field input, .field textarea, .field select {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--accent);
+  }
+  .field textarea { resize: vertical; min-height: 70px; line-height: 1.5; }
+  .field input[type="number"] { font-family: var(--mono); }
+  .field input[type="time"] { font-family: var(--mono); }
+
+  /* Colete split */
+  .colete-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .colete-half {
+    padding: 14px 16px;
+  }
+  .colete-half:first-child {
+    border-right: 1px solid var(--border);
+    background: rgba(239,68,68,0.04);
+  }
+  .colete-half:last-child {
+    background: rgba(34,197,94,0.04);
+  }
+  .colete-half label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .colete-half:first-child label { color: #f87171; }
+  .colete-half:last-child label { color: var(--green); }
+  .colete-half input {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .colete-half:first-child input:focus { border-color: #f87171; }
+  .colete-half:last-child input:focus { border-color: var(--green); }
+  .colete-ratio {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 6px;
+    font-family: var(--mono);
+  }
+
+  /* Locații */
+  .loc-list { display: flex; flex-direction: column; gap: 8px; }
+  .loc-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 6px 10px;
+  }
+  .loc-item .loc-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .loc-item input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+  .loc-item input::placeholder { color: var(--text3); }
+  .loc-item .del-btn {
+    background: none;
+    border: none;
+    color: var(--text3);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .loc-item .del-btn:hover { color: var(--red); }
+  .add-loc-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px dashed var(--border);
+    border-radius: 7px;
+    padding: 8px 12px;
+    color: var(--text3);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    width: 100%;
+    font-family: 'Inter', sans-serif;
+  }
+  .add-loc-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Stopuri */
+  .stop-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 10px 5px 12px;
+    font-size: 12px;
+    font-family: var(--mono);
+    margin: 4px;
+  }
+  .stop-chip button {
+    background: none; border: none;
+    color: var(--text3); cursor: pointer;
+    font-size: 14px; line-height: 1;
+    padding: 0;
+    transition: color 0.15s;
+  }
+  .stop-chip button:hover { color: var(--red); }
+  .stop-input-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .stop-input-row input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 7px;
+    font-size: 13px;
+    font-family: 'Inter', sans-serif;
+    outline: none;
+  }
+  .stop-input-row input:focus { border-color: var(--accent); }
+  .stop-input-row button {
+    background: var(--accent);
+    border: none;
+    color: #000;
+    padding: 8px 14px;
+    border-radius: 7px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .stop-input-row button:hover { background: var(--accent2); }
+
+  /* Save button */
+  .save-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .btn-save {
+    background: var(--accent);
+    border: none;
+    color: #000;
+    padding: 11px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.3px;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-save:hover { background: var(--accent2); }
+  .btn-save:active { transform: scale(0.98); }
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: all 0.15s;
+  }
+  .btn-clear:hover { border-color: var(--red); color: var(--red); }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green);
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s ease;
+    z-index: 200;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* Empty state */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 60vh;
+    color: var(--text3);
+    text-align: center;
+    gap: 12px;
+  }
+  .empty-state .big-icon { font-size: 48px; opacity: 0.4; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* Section icon colors */
+  .icon-time { background: rgba(59,130,246,0.15); }
+  .icon-colete { background: rgba(245,166,35,0.15); }
+  .icon-loc { background: rgba(168,85,247,0.15); }
+  .icon-stop { background: rgba(239,68,68,0.15); }
+  .icon-masina { background: rgba(34,197,94,0.15); }
+  .icon-obs { background: rgba(148,163,184,0.1); }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+    .cal-panel { position: static; height: auto; padding: 16px; }
+    .form-panel { padding: 16px; }
+    .form-row.cols-4 { grid-template-columns: 1fr 1fr; }
+    .form-row.cols-3 { grid-template-columns: 1fr 1fr; }
+    .cal-grid { gap: 3px; }
+    .cal-day .day-num { font-size: 12px; }
+    .cal-stats { grid-template-columns: 1fr 1fr; }
+    .save-bar { flex-direction: column; }
+    .btn-save, .btn-clear { width: 100%; text-align: center; }
+    .toggle-btn { padding: 12px; font-size: 14px; }
+  }
+    .app { grid-template-columns: 1fr; }
+    .cal-panel { position: static; height: auto; }
+    .form-row.cols-4 { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">LOG<span>BOOK</span></div>
+  <div class="driver-select">
+    <label>Șofer:</label>
+    <select id="driverSelect" onchange="changeDriver()">
+      <option value="sofer1">Șofer 1</option>
+      <option value="sofer2">Șofer 2</option>
+      <option value="sofer3">Șofer 3</option>
+      <option value="sofer4">Șofer 4</option>
+    </select>
+  </div>
+</header>
+
+<div class="app">
+  <!-- CALENDAR -->
+  <aside class="cal-panel">
+    <div class="cal-nav">
+      <button onclick="prevMonth()">‹</button>
+      <div class="cal-month" id="calMonth"></div>
+      <button onclick="nextMonth()">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+
+    <div class="cal-legend">
+      <div class="legend-item">
+        <div class="legend-dot" style="background:rgba(34,197,94,0.4);border:1px solid rgba(34,197,94,0.6)"></div>
+        Zi lucrată
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:rgba(245,166,35,0.4);border:1px solid var(--accent)"></div>
+        Selectată
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:var(--accent);width:10px;height:10px;border-radius:50%"></div>
+        Azi
+      </div>
+    </div>
+
+    <div class="cal-stats" id="calStats"></div>
+  </aside>
+
+  <!-- FORM -->
+  <main class="form-panel" id="formPanel">
+    <div class="empty-state">
+      <div class="big-icon">📅</div>
+      <p>Selectează o zi din calendar<br>pentru a completa sau vizualiza datele.</p>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast">✓ Zi salvată cu succes!</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let currentDriver = 'sofer1';
+let viewYear, viewMonth;
+let selectedDate = null;
+let stops = [];
+let locations = [];
+let isWorkedState = false;
+
+// Data store: { driverKey: { 'YYYY-MM-DD': {...} } }
+let store = JSON.parse(localStorage.getItem('logbook_v2') || '{}');
+
+const DAYS_RO = ['Lun','Mar','Mie','Joi','Vin','Sâm','Dum'];
+const MONTHS_RO = ['Ianuarie','Februarie','Martie','Aprilie','Mai','Iunie',
+                   'Iulie','August','Septembrie','Octombrie','Noiembrie','Decembrie'];
+
+// ─── INIT ─────────────────────────────────────────────────
+window.onload = () => {
+  const today = new Date();
+  viewYear = today.getFullYear();
+  viewMonth = today.getMonth();
+  renderCalendar();
+};
+
+function changeDriver() {
+  currentDriver = document.getElementById('driverSelect').value;
+  renderCalendar();
+  if (selectedDate) openDay(selectedDate);
+}
+
+// ─── CALENDAR ─────────────────────────────────────────────
+function renderCalendar() {
+  document.getElementById('calMonth').textContent =
+    MONTHS_RO[viewMonth] + ' ' + viewYear;
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  DAYS_RO.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(viewYear, viewMonth, 1);
+  let startDow = firstDay.getDay(); // 0=Sun
+  startDow = startDow === 0 ? 6 : startDow - 1; // Mon=0
+
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const prevDays = new Date(viewYear, viewMonth, 0).getDate();
+
+  const today = new Date();
+  const todayStr = dateStr(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // Prev month overflow
+  for (let i = startDow - 1; i >= 0; i--) {
+    const d = prevDays - i;
+    const m = viewMonth === 0 ? 11 : viewMonth - 1;
+    const y = viewMonth === 0 ? viewYear - 1 : viewYear;
+    grid.appendChild(makeDayEl(y, m, d, true));
+  }
+
+  for (let d = 1; d <= daysInM
